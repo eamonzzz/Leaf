@@ -60,13 +60,16 @@ public class SnowflakeIDGenImpl implements IDGen {
     @Override
     public synchronized Result get(String key) {
         long timestamp = timeGen();
+        // 发生了回拨，此刻时间小于上次发号时间
         if (timestamp < lastTimestamp) {
             long offset = lastTimestamp - timestamp;
             if (offset <= 5) {
                 try {
+                    // 时间偏差大小小于5ms，则等待两倍时间
                     wait(offset << 1);
                     timestamp = timeGen();
                     if (timestamp < lastTimestamp) {
+                        // 还是小于，默认抛 error_code
                         return new Result(-1, Status.EXCEPTION);
                     }
                 } catch (InterruptedException e) {
